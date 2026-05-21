@@ -808,8 +808,6 @@ function DashboardSummarySection({ overviewData, overviewLoading, setActiveSecti
     </div>
   );
 }
-  );
-}
 
 // ==========================================
 // C. SECTION 2: MARKETS OVERVIEW TAB

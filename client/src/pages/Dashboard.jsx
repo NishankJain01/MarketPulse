@@ -2157,9 +2157,12 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
   const [period, setPeriod] = useState('1mo');
   const [interval, setInterval] = useState('1d');
   const [overlays, setOverlays] = useState({ ema9: true, sma20: false, sma50: false });
+  const [isWatched, setIsWatched] = useState(false);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('1M');
 
   // Get active metadata (mock dynamic details with realistic fallback)
   const metadata = getMockStockDetails(activeSymbol);
+  const exchange = activeSymbol.endsWith('.NS') || activeSymbol.startsWith('^') ? 'NSE - INR' : 'NASDAQ - USD';
 
   const fetchStockData = async () => {
     setLoading(true);
@@ -2185,6 +2188,18 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
     fetchStockData();
   }, [activeSymbol, period, interval]);
 
+  // Timeframe options for primary Candlestick Chart
+  const periods = [
+    { label: '1D', value: '1d', interval: '1m' },
+    { label: '1W', value: '5d', interval: '5m' },
+    { label: '1M', value: '1mo', interval: '1d' },
+    { label: '3M', value: '3mo', interval: '1d' },
+    { label: '6M', value: '6mo', interval: '1d' },
+    { label: '1Y', value: '1y', interval: '1d' },
+    { label: '5Y', value: '5y', interval: '1wk' },
+    { label: 'Max', value: 'max', interval: '1mo' },
+  ];
+
   // Main Candlestick Chart Series
   const ohlcSeries = [{
     name: activeSymbol,
@@ -2196,9 +2211,9 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
 
   // Candlestick Chart Options
   const ohlcOptions = {
-    chart: { type: 'candlestick', toolbar: { show: true }, background: 'transparent' },
-    xaxis: { type: 'datetime', labels: { style: { colors: '#a1a1aa' } } },
-    yaxis: { labels: { style: { colors: '#a1a1aa' } } },
+    chart: { type: 'candlestick', toolbar: { show: false }, background: 'transparent' },
+    xaxis: { type: 'datetime', labels: { style: { colors: '#71717a' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: '#71717a' } } },
     plotOptions: {
       candlestick: {
         colors: { upward: '#10b981', downward: '#ef4444' },
@@ -2206,18 +2221,17 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
       }
     },
     tooltip: { enabled: true, theme: 'dark' },
-    grid: { borderColor: 'rgba(255, 255, 255, 0.03)' }
+    grid: { borderColor: 'rgba(255, 255, 255, 0.02)', strokeDashArray: 4 }
   };
 
   // Compile Price vs Sentiment vs Mood line series
-  // We'll generate dynamic historical trends matching the chart timestamps
   const historySeries = [
     {
       name: 'Price (Indexed)',
       type: 'line',
       data: chartData.map(item => ({
         x: new Date(item.timestamp),
-        y: Number((item.close / metadata.price * 50 + 25).toFixed(1)) // normalized price trend
+        y: Number((item.close / metadata.price * 50 + 25).toFixed(1))
       }))
     },
     {
@@ -2241,360 +2255,529 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
   const lineOptions = {
     chart: { type: 'line', background: 'transparent', toolbar: { show: false } },
     stroke: { width: [3, 2, 2], curve: 'smooth', dashArray: [0, 0, 4] },
-    fill: { opacity: [1, 0.1, 1], type: ['solid', 'gradient', 'solid'] },
-    xaxis: { type: 'datetime', labels: { style: { colors: '#a1a1aa' } } },
-    yaxis: { labels: { style: { colors: '#a1a1aa' } }, max: 100, min: 0 },
+    fill: { opacity: [1, 0.05, 1], type: ['solid', 'gradient', 'solid'] },
+    xaxis: { type: 'datetime', labels: { style: { colors: '#71717a' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: '#71717a' } }, max: 100, min: 0 },
     colors: ['#6366f1', '#10b981', '#f59e0b'],
     tooltip: { theme: 'dark' },
-    grid: { borderColor: 'rgba(255, 255, 255, 0.03)' },
-    legend: { show: true, labels: { colors: '#a1a1aa' } }
+    grid: { borderColor: 'rgba(255, 255, 255, 0.02)', strokeDashArray: 4 },
+    legend: { show: false }
+  };
+
+  // Custom high-fidelity dynamic Gauge Meter component for Market Mood Score
+  const MoodGauge = ({ score }) => {
+    const r = 35;
+    const circumference = Math.PI * r;
+    const strokeDashoffset = circumference - (score / 100) * circumference;
+    const angle = (score / 100) * 180 - 180;
+    
+    const getScoreColor = (val) => {
+      if (val < 40) return '#ef4444';
+      if (val < 60) return '#f59e0b';
+      return '#10b981';
+    };
+    
+    const getScoreLabel = (val) => {
+      if (val < 30) return 'Extreme Fear';
+      if (val < 45) return 'Fear';
+      if (val < 55) return 'Neutral';
+      if (val < 75) return 'Greed';
+      return 'Extreme Greed';
+    };
+    
+    const color = getScoreColor(score);
+    const label = getScoreLabel(score);
+    
+    return (
+      <div className="flex flex-col items-center justify-center relative mt-1">
+        <div className="w-full max-w-[190px] h-[95px] relative">
+          <svg className="w-full h-full" viewBox="0 0 100 70">
+            <defs>
+              <linearGradient id="mood-gauge-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="50%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+            </defs>
+            
+            <path
+              d="M 15 65 A 35 35 0 0 1 85 65"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.05)"
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+            
+            <path
+              d="M 15 65 A 35 35 0 0 1 85 65"
+              fill="none"
+              stroke="url(#mood-gauge-grad)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+            />
+            
+            <g transform={`rotate(${angle + 90} 50 65)`} style={{ transition: 'transform 1s ease-out' }}>
+              <line x1="50" y1="65" x2="50" y2="35" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+              <polygon points="48.5,40 51.5,40 50,34" fill="#ffffff" />
+              <circle cx="50" cy="65" r="3" fill="#ffffff" />
+            </g>
+            
+            <text x="50" y="60" textAnchor="middle" className="fill-white font-black text-2xl" style={{ fontFamily: 'monospace' }}>
+              {score}
+            </text>
+            
+            <text x="18" y="72" textAnchor="middle" className="fill-zinc-600 font-bold text-[5px]">
+              -100 FEAR
+            </text>
+            <text x="82" y="72" textAnchor="middle" className="fill-zinc-600 font-bold text-[5px]">
+              +100 GREED
+            </text>
+          </svg>
+        </div>
+        <div 
+          className="text-xs font-black tracking-widest uppercase mt-0.5"
+          style={{ color, textShadow: `0 0 8px ${color}40` }}
+        >
+          {label}
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      {/* 1. STOCK HEADER STATS */}
-      <div className="glass-panel p-6 rounded-3xl bg-gradient-to-r from-white/[0.01] via-white/[0.02] to-transparent border border-white/[0.06]">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/[0.04] pb-4 mb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-neon-blue font-bold mono-font uppercase tracking-wider block bg-neon-blue/10 px-2 py-0.5 rounded-md border border-neon-blue/20">
-                {activeSymbol}
-              </span>
-              <span className={`text-[10px] font-black uppercase py-0.5 px-2.5 rounded-full ${
-                metadata.recommendation.includes("BUY") ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-              }`}>
-                AI opinion: {metadata.recommendation}
-              </span>
-            </div>
-            <h2 className="text-2xl font-black display-font text-white">{metadata.name}</h2>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <span className="text-3xl font-black text-white block mono-font">
-                {metadata.currency}{metadata.price.toLocaleString()}
-              </span>
-              <span className={`text-sm font-black flex items-center justify-end gap-1 ${metadata.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {metadata.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                {metadata.change >= 0 ? '+' : ''}{metadata.change.toLocaleString()} ({metadata.changePct >= 0 ? '+' : ''}{metadata.changePct}%)
-              </span>
-            </div>
-            
-            <button onClick={fetchStockData} className="p-2.5 glass-panel rounded-xl hover:bg-white/[0.02] text-neon-blue cursor-pointer">
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+      {/* 1. STOCK HEADER STATS ROW */}
+      <div className="glass-panel p-6 rounded-3xl bg-gradient-to-r from-white/[0.01] via-white/[0.02] to-transparent border border-white/[0.05] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-2xl font-black display-font text-white flex items-center gap-2">
+              {metadata.name} <span className="text-zinc-500 font-normal">({activeSymbol})</span>
+            </h2>
+            <button 
+              onClick={() => {
+                setIsWatched(!isWatched);
+                toast.success(isWatched ? "Removed from watchlist" : "Added to watchlist");
+              }}
+              className={`text-xl transition-all cursor-pointer ${isWatched ? 'text-amber-400 scale-110 drop-shadow-[0_0_6px_#f59e0b]' : 'text-zinc-500 hover:text-white'}`}
+            >
+              {isWatched ? '★' : '✩'}
             </button>
+          </div>
+          <p className="text-[10px] text-text-muted font-bold tracking-wider uppercase">{exchange}</p>
+          
+          <div className="flex items-baseline gap-3.5 pt-1">
+            <span className="text-3xl font-black text-white tracking-tight mono-font">
+              {metadata.currency}{metadata.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </span>
+            <span className={`text-sm font-black px-2 py-0.5 rounded-md flex items-center gap-0.5 ${metadata.change >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+              {metadata.change >= 0 ? '+' : ''}{metadata.change.toFixed(2)} ({metadata.changePct >= 0 ? '+' : ''}{metadata.changePct.toFixed(2)}%) Today
+            </span>
           </div>
         </div>
 
-        {/* Detailed Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
+        {/* Detailed Horizontal Stats */}
+        <div className="flex flex-wrap items-center gap-8 xl:gap-12 w-full xl:w-auto border-t xl:border-t-0 border-white/[0.04] pt-4 xl:pt-0">
+          <div className="space-y-1">
             <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">Market Cap</span>
-            <span className="text-sm font-bold text-white block mt-1 mono-font">{metadata.marketCap}</span>
+            <span className="text-sm font-black text-white mono-font">{metadata.marketCap}</span>
           </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
+          <div className="space-y-1">
             <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">P/E Ratio</span>
-            <span className="text-sm font-bold text-white block mt-1 mono-font">{metadata.peRatio}</span>
+            <span className="text-sm font-black text-white mono-font">{metadata.peRatio}</span>
           </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
-            <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">52W High</span>
-            <span className="text-sm font-bold text-emerald-400 block mt-1 mono-font">{metadata.currency}{metadata.high52W.toLocaleString()}</span>
+          <div className="space-y-1">
+            <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">52 Week High</span>
+            <span className="text-sm font-black text-emerald-400 mono-font">{metadata.currency}{metadata.high52W.toLocaleString()}</span>
           </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
-            <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">52W Low</span>
-            <span className="text-sm font-bold text-rose-400 block mt-1 mono-font">{metadata.currency}{metadata.low52W.toLocaleString()}</span>
+          <div className="space-y-1">
+            <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">52 Week Low</span>
+            <span className="text-sm font-black text-rose-400 mono-font">{metadata.currency}{metadata.low52W.toLocaleString()}</span>
           </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
-            <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">Avg Volume</span>
-            <span className="text-sm font-bold text-white block mt-1 mono-font">{metadata.volume}</span>
+          <div className="space-y-1">
+            <span className="text-[10px] text-text-muted uppercase font-black tracking-wider block">Volume</span>
+            <span className="text-sm font-black text-white mono-font">{metadata.volume}</span>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN 2-COLUMN VIEWPORT LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* LEFT COLUMN: CHARTS AND EXPERT RATINGS */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* OHLC Candlestick Chart */}
-          <div className="glass-panel p-6 rounded-3xl bg-gradient-to-b from-white/[0.01] to-transparent">
-            <div className="flex justify-between items-center mb-4">
-              <span className="font-bold text-white display-font block">OHLC Candlestick Chart</span>
-              
-              <div className="flex gap-1 bg-white/[0.02] p-1 rounded-xl border border-white/[0.04] text-xs font-bold">
-                {['1w', '1mo', '3mo', '1y'].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`py-1 px-3 rounded-lg transition-all cursor-pointer ${
-                      period === p ? 'bg-neon-blue text-background-primary shadow-glow-blue/20' : 'text-text-muted hover:text-white'
-                    }`}
-                  >
-                    {p.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="h-[320px] shimmer-bg rounded-2xl w-full"></div>
-            ) : (
-              <div className="h-[320px]">
-                <Chart 
-                  options={ohlcOptions} 
-                  series={ohlcSeries} 
-                  type="candlestick" 
-                  height="100%" 
-                />
-              </div>
-            )}
-
-            {/* Indicator Toggles */}
-            <div className="flex gap-2.5 border-t border-white/[0.04] pt-4 mt-2">
-              <button 
-                onClick={() => setOverlays(p => ({ ...p, ema9: !p.ema9 }))}
-                className={`text-[10px] py-1.5 px-3 rounded-xl border font-bold transition-all ${overlays.ema9 ? 'border-neon-blue text-neon-blue bg-neon-blue/10 shadow-glow-blue/5' : 'border-white/[0.05] text-text-muted hover:text-white'}`}
+      {/* 2. INTERACTIVE CANDLESTICK CHART CONTAINER (FULL WIDTH) */}
+      <div className="glass-panel p-6 rounded-3xl bg-gradient-to-b from-white/[0.01] to-transparent border border-white/[0.05]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          {/* Timeframe Selector Pill buttons */}
+          <div className="flex flex-wrap gap-1 bg-white/[0.02] p-1 rounded-2xl border border-white/[0.04] text-xs">
+            {periods.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => {
+                  setPeriod(p.value);
+                  setInterval(p.interval);
+                }}
+                className={`py-1.5 px-3.5 rounded-xl transition-all cursor-pointer ${
+                  period === p.value ? 'bg-indigo-500 text-white shadow-glow-indigo/20 font-black' : 'text-text-muted hover:text-white font-bold'
+                }`}
               >
-                EMA 9
+                {p.label}
               </button>
-              <button 
-                onClick={() => setOverlays(p => ({ ...p, sma20: !p.sma20 }))}
-                className={`text-[10px] py-1.5 px-3 rounded-xl border font-bold transition-all ${overlays.sma20 ? 'border-neon-green text-neon-green bg-neon-green/10 shadow-glow-green/5' : 'border-white/[0.05] text-text-muted hover:text-white'}`}
-              >
-                SMA 20
-              </button>
-              <button 
-                onClick={() => setOverlays(p => ({ ...p, sma50: !p.sma50 }))}
-                className={`text-[10px] py-1.5 px-3 rounded-xl border font-bold transition-all ${overlays.sma50 ? 'border-neon-purple text-neon-purple bg-neon-purple/10 shadow-glow-purple/5' : 'border-white/[0.05] text-text-muted hover:text-white'}`}
-              >
-                SMA 50
-              </button>
-            </div>
+            ))}
           </div>
 
-          {/* Historical Trends Spline Area Chart */}
-          <div className="glass-panel p-6 rounded-3xl">
-            <span className="font-bold text-white display-font block mb-4">Historical Sentiment vs Price vs MMI Trend</span>
-            <div className="h-[280px]">
-              <Chart 
-                options={lineOptions}
-                series={historySeries}
-                type="line"
-                height="100%"
-              />
-            </div>
-          </div>
+          {/* Right overlays & action tools */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setOverlays(p => ({ ...p, ema9: !p.ema9 }))}
+              className={`text-[10px] py-1.5 px-3.5 rounded-xl border font-black tracking-wider uppercase transition-all cursor-pointer ${overlays.ema9 ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10 shadow-glow-indigo/5' : 'border-white/[0.05] text-text-muted hover:text-white'}`}
+            >
+              EMA 9
+            </button>
+            <button 
+              onClick={() => setOverlays(p => ({ ...p, sma20: !p.sma20 }))}
+              className={`text-[10px] py-1.5 px-3.5 rounded-xl border font-black tracking-wider uppercase transition-all cursor-pointer ${overlays.sma20 ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10 shadow-glow-emerald/5' : 'border-white/[0.05] text-text-muted hover:text-white'}`}
+            >
+              SMA 20
+            </button>
+            <button 
+              onClick={() => setOverlays(p => ({ ...p, sma50: !p.sma50 }))}
+              className={`text-[10px] py-1.5 px-3.5 rounded-xl border font-black tracking-wider uppercase transition-all cursor-pointer ${overlays.sma50 ? 'border-purple-500 text-purple-400 bg-purple-500/10 shadow-glow-purple/5' : 'border-white/[0.05] text-text-muted hover:text-white'}`}
+            >
+              SMA 50
+            </button>
+            
+            <div className="h-6 w-px bg-white/[0.05] mx-1"></div>
 
-          {/* Expert Opinions Card */}
-          <div className="glass-panel p-6 rounded-3xl">
-            <span className="font-bold text-white display-font block mb-4">Expert Consensus & Broker Target Ratings</span>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-semibold leading-relaxed text-text-muted">
-                <thead>
-                  <tr className="border-b border-white/[0.04] text-text-muted text-[10px] uppercase font-black tracking-wider pb-2.5">
-                    <th className="py-2.5">Broker Institution</th>
-                    <th className="py-2.5 text-center">Analyst Rating</th>
-                    <th className="py-2.5 text-right">Target Consensus</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.02]">
-                  {metadata.opinions.map((op, i) => (
-                    <tr key={i} className="hover:bg-white/[0.01]">
-                      <td className="py-3 text-white font-bold">{op.broker}</td>
-                      <td className="py-3 text-center">
-                        <span className={`py-0.5 px-2 rounded-md text-[10px] font-bold ${
-                          op.rating.includes("Buy") || op.rating.includes("Outperform") || op.rating.includes("Overweight")
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/15"
-                            : "bg-white/[0.04] text-text-muted border border-white/[0.08]"
-                        }`}>
-                          {op.rating}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right mono-font text-white">{op.target}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <button onClick={fetchStockData} className="p-2.5 glass-panel rounded-xl hover:bg-white/[0.03] text-indigo-400 cursor-pointer border border-white/[0.04]">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
-
         </div>
 
-        {/* RIGHT COLUMN: 4 QUADRANTS & RECOMMENDATION SCORECARD */}
-        <div className="space-y-6">
+        {loading ? (
+          <div className="h-[340px] shimmer-bg rounded-2xl w-full flex items-center justify-center text-xs text-text-muted font-bold">
+            Syncing market metrics...
+          </div>
+        ) : (
+          <div className="h-[340px]">
+            <Chart 
+              options={ohlcOptions} 
+              series={ohlcSeries} 
+              type="candlestick" 
+              height="100%" 
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 3. MIDDLE GRID (4 QUADRANTS) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        
+        {/* News Sentiment Card */}
+        <div className="glass-panel p-6 rounded-3xl space-y-4 border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent hover:border-white/[0.08] transition-all">
+          <div className="flex justify-between items-center text-xs font-black tracking-wider text-text-muted uppercase">
+            <span className="flex items-center gap-2 text-white">
+              <FileText className="w-4 h-4 text-emerald-400" /> News Sentiment
+            </span>
+          </div>
           
-          {/* RADIAL PSYCH GAUGE */}
-          <div className="glass-panel p-6 rounded-3xl bg-gradient-to-b from-white/[0.01] to-transparent">
-            <span className="font-bold text-white display-font block mb-2 uppercase tracking-wide text-xs">Market Mood Score</span>
-            <div className="flex flex-col items-center justify-center py-2 relative">
-              <div className="w-36 h-36 relative -mb-6">
-                <Chart 
-                  options={{
-                    ...radialOptions,
-                    colors: [metadata.mmi > 75 ? '#10b981' : metadata.mmi > 45 ? '#6366f1' : '#ef4444']
-                  }}
-                  series={[metadata.mmi]}
-                  type="radialBar"
-                  height="100%"
-                />
+          <div className="space-y-1.5 py-1">
+            <div className="text-3xl font-black text-emerald-400 mono-font">
+              {metadata.sentiment.positive}%
+            </div>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider block">Positive</span>
+          </div>
+
+          <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden flex border border-white/[0.05]">
+            <div className="h-full bg-emerald-500" style={{ width: `${metadata.sentiment.positive}%` }}></div>
+            <div className="h-full bg-white/[0.2]" style={{ width: `${metadata.sentiment.neutral}%` }}></div>
+            <div className="h-full bg-rose-500" style={{ width: `${metadata.sentiment.negative}%` }}></div>
+          </div>
+
+          <div className="flex justify-between items-center text-[10px] text-text-muted font-bold pt-1.5 font-mono">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pos {metadata.sentiment.positive}%</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Neu {metadata.sentiment.neutral}%</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Neg {metadata.sentiment.negative}%</span>
+          </div>
+
+          <div className="pt-2 border-t border-white/[0.03]">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              View News <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Reddit Discussion Card */}
+        <div className="glass-panel p-6 rounded-3xl space-y-4 border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent hover:border-white/[0.08] transition-all">
+          <div className="flex justify-between items-center text-xs font-black tracking-wider text-text-muted uppercase">
+            <span className="flex items-center gap-2 text-white">
+              <MessageSquare className="w-4 h-4 text-orange-400" /> Reddit Discussion
+            </span>
+          </div>
+
+          <div className="space-y-1.5 py-1">
+            <div className="text-3xl font-black text-orange-500 mono-font">
+              {metadata.reddit.bullish}%
+            </div>
+            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider block">Bullish</span>
+          </div>
+
+          <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden flex border border-white/[0.05]">
+            <div className="h-full bg-orange-500" style={{ width: `${metadata.reddit.bullish}%` }}></div>
+            <div className="h-full bg-white/[0.2]" style={{ width: `15%` }}></div>
+            <div className="h-full bg-rose-500" style={{ width: `${metadata.reddit.bearish - 15 > 0 ? metadata.reddit.bearish - 15 : 15}%` }}></div>
+          </div>
+
+          <div className="flex justify-between items-center text-[10px] text-text-muted font-bold pt-1.5 font-mono">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Bull {metadata.reddit.bullish}%</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Neu 15%</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Bear {metadata.reddit.bearish - 15 > 0 ? metadata.reddit.bearish - 15 : 15}%</span>
+          </div>
+
+          <div className="pt-2 border-t border-white/[0.03]">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              View Discussions <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Emotion Detection Card */}
+        <div className="glass-panel p-6 rounded-3xl space-y-4 border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent hover:border-white/[0.08] transition-all">
+          <div className="flex justify-between items-center text-xs font-black tracking-wider text-text-muted uppercase">
+            <span className="flex items-center gap-2 text-white">
+              <PieChart className="w-4 h-4 text-indigo-400" /> Emotion Detection
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 py-1">
+            <div className="w-[45%] shrink-0">
+              <Chart 
+                options={{
+                  chart: { type: 'donut', background: 'transparent', sparkline: { enabled: true } },
+                  labels: ['Optimism', 'Greed', 'Fear', 'Hype', 'Panic'],
+                  colors: ['#6366f1', '#10b981', '#ef4444', '#f59e0b', '#ec4899'],
+                  stroke: { colors: ['transparent'] },
+                  plotOptions: { donut: { size: '70%' } },
+                  dataLabels: { enabled: false },
+                  legend: { show: false },
+                  tooltip: { theme: 'dark' }
+                }}
+                series={[metadata.emotions.optimism, metadata.emotions.greed, metadata.emotions.fear, metadata.emotions.hype, metadata.emotions.panic]}
+                type="donut"
+                height={85}
+              />
+            </div>
+            
+            <div className="w-[55%] space-y-1 text-[9px] font-bold text-text-muted">
+              <div className="flex items-center justify-between text-indigo-400">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Optimism</span>
+                <span className="mono-font">{metadata.emotions.optimism}%</span>
               </div>
-              <span className="text-lg font-black text-white display-font tracking-wider mt-1">
-                {metadata.mmi > 75 ? 'EXTREME GREED' : metadata.mmi > 55 ? 'GREED' : metadata.mmi > 35 ? 'NEUTRAL' : 'FEAR'}
-              </span>
-              <span className="text-xs font-bold text-text-muted mono-font">Psych Score: {metadata.mmi} / 100</span>
+              <div className="flex items-center justify-between text-emerald-400">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Greed</span>
+                <span className="mono-font">{metadata.emotions.greed}%</span>
+              </div>
+              <div className="flex items-center justify-between text-rose-400">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Fear</span>
+                <span className="mono-font">{metadata.emotions.fear}%</span>
+              </div>
+              <div className="flex items-center justify-between text-amber-400">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Hype</span>
+                <span className="mono-font">{metadata.emotions.hype}%</span>
+              </div>
+              <div className="flex items-center justify-between text-pink-400">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Panic</span>
+                <span className="mono-font">{metadata.emotions.panic}%</span>
+              </div>
             </div>
           </div>
 
-          {/* NEWS SENTIMENT QUADRANT */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4">
-            <span className="font-bold text-white display-font block text-xs uppercase tracking-wide">News Sentiment Quadrant</span>
-            <div className="space-y-3.5">
-              <div>
-                <div className="flex justify-between text-xs font-bold text-emerald-400 mb-1">
-                  <span>Positive Headlines</span>
-                  <span>{metadata.sentiment.positive}%</span>
+          <div className="pt-2 border-t border-white/[0.03]">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              View Details <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Market Mood Score Card */}
+        <div className="glass-panel p-6 rounded-3xl space-y-3.5 border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent hover:border-white/[0.08] transition-all">
+          <div className="flex justify-between items-center text-xs font-black tracking-wider text-text-muted uppercase">
+            <span className="flex items-center gap-2 text-white">
+              <Activity className="w-4 h-4 text-purple-400" /> Market Mood Score
+            </span>
+          </div>
+
+          <MoodGauge score={metadata.mmi} />
+
+          <div className="pt-2 border-t border-white/[0.03] mt-1">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              View More <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* 4. BOTTOM GRID (5 COLUMNS) */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        
+        {/* Charts & Analytics (xl:col-span-2) */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent xl:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-black text-white display-font block uppercase tracking-wider flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-400" /> Charts & Analytics
+            </span>
+
+            {/* Timeframe Chips */}
+            <div className="flex gap-1 bg-white/[0.02] p-0.5 rounded-xl border border-white/[0.04] text-[9px] font-bold">
+              {['1D', '1W', '1M', '3M', '1Y'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setAnalyticsPeriod(t)}
+                  className={`py-1 px-2.5 rounded-lg transition-all cursor-pointer ${
+                    analyticsPeriod === t ? 'bg-indigo-500/20 text-indigo-400 font-extrabold border border-indigo-500/30' : 'text-text-muted hover:text-white'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-[200px]">
+            <Chart 
+              options={lineOptions}
+              series={historySeries}
+              type="line"
+              height="100%"
+            />
+          </div>
+
+          <div className="flex justify-between items-center text-[10px] text-text-muted font-bold pt-2 border-t border-white/[0.03] font-mono">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-indigo-500 block"></span> Price</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-emerald-500 block"></span> Sentiment</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-amber-500 block"></span> Mood Score</span>
+          </div>
+        </div>
+
+        {/* Expert Opinions (xl:col-span-1) */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent xl:col-span-1 flex flex-col justify-between space-y-4">
+          <div className="space-y-4">
+            <span className="text-xs font-black text-white display-font block uppercase tracking-wider flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-emerald-400" /> Expert Opinions
+            </span>
+
+            <div className="space-y-3">
+              {metadata.opinions.slice(0, 5).map((op, i) => (
+                <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-white/[0.02]">
+                  <span className="font-bold text-white leading-tight">{op.broker}</span>
+                  <span className={`py-0.5 px-2 rounded-md text-[9px] font-black uppercase border ${
+                    op.rating.includes("Buy") || op.rating.includes("Outperform") || op.rating.includes("Overweight") || op.rating.includes("Add")
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : op.rating.includes("Sell") || op.rating.includes("Reduce") || op.rating.includes("Underweight")
+                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                      : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                  }`}>
+                    {op.rating}
+                  </span>
                 </div>
-                <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden border border-white/[0.05]">
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-white/[0.03]">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              View All <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Public Reaction (xl:col-span-1) */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent xl:col-span-1 flex flex-col justify-between space-y-4">
+          <div className="space-y-4">
+            <span className="text-xs font-black text-white display-font block uppercase tracking-wider flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-indigo-400" /> Public Reaction
+            </span>
+
+            <div className="space-y-4 pt-1">
+              <div>
+                <div className="flex justify-between text-[10px] text-text-muted font-black uppercase mb-1">
+                  <span>Positive</span>
+                  <span className="text-emerald-400 font-mono font-bold">{metadata.sentiment.positive}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.04]">
                   <div className="h-full bg-emerald-500 shadow-glow-green/10" style={{ width: `${metadata.sentiment.positive}%` }}></div>
                 </div>
               </div>
+
               <div>
-                <div className="flex justify-between text-xs font-bold text-text-muted mb-1">
-                  <span>Neutral Headlines</span>
-                  <span>{metadata.sentiment.neutral}%</span>
+                <div className="flex justify-between text-[10px] text-text-muted font-black uppercase mb-1">
+                  <span>Neutral</span>
+                  <span className="text-zinc-400 font-mono font-bold">{metadata.sentiment.neutral}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden border border-white/[0.05]">
-                  <div className="h-full bg-white/[0.2]" style={{ width: `${metadata.sentiment.neutral}%` }}></div>
+                <div className="w-full h-1.5 bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.04]">
+                  <div className="h-full bg-zinc-500" style={{ width: `${metadata.sentiment.neutral}%` }}></div>
                 </div>
               </div>
+
               <div>
-                <div className="flex justify-between text-xs font-bold text-rose-400 mb-1">
-                  <span>Negative Headlines</span>
-                  <span>{metadata.sentiment.negative}%</span>
+                <div className="flex justify-between text-[10px] text-text-muted font-black uppercase mb-1">
+                  <span>Negative</span>
+                  <span className="text-rose-400 font-mono font-bold">{metadata.sentiment.negative}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden border border-white/[0.05]">
+                <div className="w-full h-1.5 bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.04]">
                   <div className="h-full bg-rose-500 shadow-glow-red/10" style={{ width: `${metadata.sentiment.negative}%` }}></div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* REDDIT DISCUSSION RATIO */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4">
-            <span className="font-bold text-white display-font block text-xs uppercase tracking-wide">Reddit Discussion Ratios</span>
-            
-            <div className="flex items-center justify-between font-bold text-sm mb-1.5">
-              <span className="text-orange-400 flex items-center gap-1">Bullish: {metadata.reddit.bullish}%</span>
-              <span className="text-text-muted flex items-center gap-1">Bearish: {metadata.reddit.bearish}%</span>
-            </div>
-            
-            <div className="w-full h-3 bg-white/[0.03] rounded-full overflow-hidden border border-white/[0.05] flex">
-              <div className="h-full bg-orange-500" style={{ width: `${metadata.reddit.bullish}%` }}></div>
-              <div className="h-full bg-white/[0.1]" style={{ width: `${metadata.reddit.bearish}%` }}></div>
-            </div>
-            <p className="text-[10px] text-text-muted leading-relaxed font-semibold">
-              Computed in real-time from subreddits including r/WallStreetBets and r/IndianStreetBets using customized NLP filters.
-            </p>
+          <div className="pt-2 border-t border-white/[0.03]">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              View More <ArrowUpRight className="w-3 h-3" />
+            </button>
           </div>
+        </div>
 
-          {/* EMOTION DETECTION ring chart */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4">
-            <span className="font-bold text-white display-font block text-xs uppercase tracking-wide">Crowd Emotions Spectrum</span>
-            <div className="py-2 flex items-center justify-center">
-              <div className="w-full max-w-[200px]">
-                <Chart 
-                  options={{
-                    chart: { type: 'donut', background: 'transparent' },
-                    labels: ['Optimism', 'Greed', 'Fear', 'Hype', 'Panic'],
-                    colors: ['#6366f1', '#10b981', '#ef4444', '#f59e0b', '#ec4899'],
-                    stroke: { colors: ['transparent'] },
-                    plotOptions: { donut: { size: '65%' } },
-                    dataLabels: { enabled: false },
-                    legend: { show: true, position: 'bottom', labels: { colors: '#a1a1aa' } }
-                  }}
-                  series={[metadata.emotions.optimism, metadata.emotions.greed, metadata.emotions.fear, metadata.emotions.hype, metadata.emotions.panic]}
-                  type="donut"
-                  width="100%"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Public Buzz Index */}
-          <div className="glass-panel p-6 rounded-3xl space-y-4">
-            <span className="font-bold text-white display-font block text-xs uppercase tracking-wide">Public Buzz Index</span>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-[10px] text-text-muted font-bold mb-1">
-                  <span>Social Buzz Volume</span>
-                  <span>{metadata.buzz.social}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-neon-blue to-neon-purple" style={{ width: `${metadata.buzz.social}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-[10px] text-text-muted font-bold mb-1">
-                  <span>Traditional Media coverage</span>
-                  <span>{metadata.buzz.media}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-neon-blue to-neon-purple" style={{ width: `${metadata.buzz.media}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-[10px] text-text-muted font-bold mb-1">
-                  <span>Trading Volume Momentum</span>
-                  <span>{metadata.buzz.volume}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-neon-blue to-neon-purple" style={{ width: `${metadata.buzz.volume}%` }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI RECOMMENDATION SCORECARD */}
-          <div className="glass-panel p-6 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 space-y-4">
-            <div className="flex justify-between items-center border-b border-indigo-500/10 pb-3 mb-2">
-              <span className="font-bold text-white display-font flex items-center gap-1.5">
-                <Sparkles className="w-5 h-5 text-indigo-400" /> AI REC SCORECARD
-              </span>
-              <span className={`text-[10px] font-black uppercase py-0.5 px-2 rounded-md ${
-                metadata.recommendation.includes("BUY") ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
-              }`}>
-                {metadata.confidence}% Confidence
+        {/* AI Recommendation (xl:col-span-1) */}
+        <div className="glass-panel p-6 rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent xl:col-span-1 flex flex-col justify-between space-y-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-black text-white display-font block uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" /> AI Recommendation
               </span>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs text-text-muted font-bold">Recommendation:</span>
-                <span className={`text-2xl font-black uppercase ${
-                  metadata.recommendation.includes("BUY") ? "text-emerald-400" : "text-amber-400"
+            <div className="space-y-3 pt-1">
+              <div className="flex items-baseline justify-between">
+                <div className={`text-3xl font-black uppercase tracking-tight ${
+                  metadata.recommendation.includes("BUY") ? "text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.2)]" : "text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.2)]"
                 }`}>
                   {metadata.recommendation}
-                </span>
-              </div>
-
-              <div className="p-3.5 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
-                <span className="text-[10px] text-text-muted font-bold block mb-1">Redline Compliance & Rationale:</span>
-                <p className="text-xs text-text-muted leading-relaxed font-semibold">{metadata.explanation}</p>
-              </div>
-
-              <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] font-bold text-white block uppercase">SEBI Red Flag Audit:</span>
-                  <p className="text-[10px] text-text-muted leading-relaxed font-semibold mt-0.5">
-                    No unregistered advisory patterns found in recent coverage. High index absorption indicates strong backing, but monitor price volume distribution continuously.
-                  </p>
+                </div>
+                
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[8px] font-black uppercase py-0.5 px-2 rounded-md ${
+                    metadata.recommendation.includes("BUY") ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                  }`}>
+                    {metadata.confidence}% Conf.
+                  </span>
+                  <span className="text-[8px] font-black uppercase py-0.5 px-2 rounded-md bg-white/[0.03] text-zinc-400 border border-white/[0.05]">
+                    Risk: Med
+                  </span>
                 </div>
               </div>
+
+              <p className="text-[10px] text-text-muted leading-relaxed font-semibold">
+                {metadata.explanation}
+              </p>
             </div>
           </div>
 
+          <div className="pt-2 border-t border-white/[0.03]">
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
+              Read Full Reasoning <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
         </div>
 
       </div>

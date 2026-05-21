@@ -7,7 +7,7 @@ import {
   Menu, X, Search, ShieldAlert, AlertTriangle, Cpu, PieChart, 
   Layers, BarChart2, MessageSquare, Briefcase, FileText, CheckCircle2, 
   Send, Sparkles, Plus, Trash2, ArrowUpRight, HelpCircle, Info, Copy, Check, Download,
-  RefreshCw
+  RefreshCw, Activity, ArrowRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -2347,12 +2347,44 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
     );
   };
 
+  const renderStockLogo = (symbol) => {
+    if (symbol === 'TSLA') {
+      return (
+        <svg viewBox="0 0 100 100" className="w-8.5 h-8.5 select-none flex-shrink-0">
+          <path fill="#e82127" d="M50 0a50 50 0 1 0 50 50A50 50 0 0 0 50 0zm0 18.5c15.1 0 26.6.6 26.6.6a14.7 14.7 0 0 1-1.3 4.2 36.3 36.3 0 0 0-25.3-7.8 36.3 36.3 0 0 0-25.3 7.8 14.7 14.7 0 0 1-1.3-4.2s11.5-.6 26.6-.6zM32.8 28.3c10.3-2.3 17.2-2.3 17.2-2.3s6.9 0 17.2 2.3c0 0-6.1 4.7-17.2 5.5v28.8c8.7-.3 15-2.2 15-2.2s-2.1 4.4-15 5.5v7.2c12-1 21-4.8 21-4.8s-4.3 8.3-21 9.8v11.5h-5.2V77.1c-16.7-1.5-21-9.8-21-9.8s9 3.8 21 4.8v-7.2c-12.9-1.1-15-5.5-15-5.5s6.3 1.9 15 2.2V33.8c-11.1-.8-17.2-5.5-17.2-5.5z"/>
+        </svg>
+      );
+    }
+    if (symbol === 'AAPL') {
+      return (
+        <svg viewBox="0 0 170 170" className="w-8.5 h-8.5 fill-white select-none flex-shrink-0">
+          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.13-1.92-14.37-6.15-2.92-2.36-6.67-6.86-11.25-13.5-3.48-4.95-6.47-10.26-8.98-15.93-2.51-5.67-4.63-11.96-6.35-18.87-1.72-6.91-2.58-13.82-2.58-20.72 0-10.72 2.34-19.44 7.01-26.17 4.67-6.73 10.74-10.1 18.22-10.1 3.58 0 7.83.95 12.75 2.85 4.93 1.9 8.7 2.85 11.3 2.85 2.24 0 5.61-.85 10.12-2.55 4.52-1.7 8.18-2.55 10.99-2.55 7.1 0 13.2 2.85 18.3 8.55 4.02 4.46 6.98 9.87 8.87 16.23-8.34 5.08-14.35 11.14-18.01 18.17-3.66 7.03-5.49 14.88-5.49 23.57 0 7.53 1.58 14.13 4.75 19.8 3.17 5.67 7.57 10.1 13.2 13.3 3.69 2.12 7.6 3.17 11.75 3.17 1.56 0 3.21-.14 4.95-.42 1.74-.28 3.1-.64 4.08-1.08.97-.44 2.21-1.07 3.73-1.89zM119.22 19.01c0 7.14-2.6 13.78-7.82 19.9-5.22 6.13-11.88 10.15-19.98 12.08-.66-7.37 1.91-14.39 7.73-21.05 5.82-6.67 12.65-10.66 20.47-12.01.6 7.07-.4 14.1-3.4 21.08z"/>
+        </svg>
+      );
+    }
+    if (symbol === 'NVDA') {
+      return (
+        <svg viewBox="0 0 100 100" className="w-8.5 h-8.5 select-none flex-shrink-0">
+          <path fill="#76b900" d="M50 0a50 50 0 1 0 50 50A50 50 0 0 0 50 0zm28.3 75.3a2.3 2.3 0 0 1-1.3.4 2.4 2.4 0 0 1-2.2-1.5 28.5 28.5 0 0 0-49.6-11 2.2 2.2 0 0 1-3.2.1 2.3 2.3 0 0 1-.1-3.2A33 33 0 0 1 76 68.2a2.3 2.3 0 0 1 .6 2 2.3 2.3 0 0 1-.3 5.1zm0-10.8a2.3 2.3 0 0 1-1.5.3 2.3 2.3 0 0 1-2-1.6c-4.4-11.8-19.4-16.7-30.8-10A2.3 2.3 0 0 1 41 53c13.7-8 31.7-2 37 12.1a2.3 2.3 0 0 1-.7 2.1 2.3 2.3 0 0 1-.6 5.3h.9zm-3.2-10.7a2.3 2.3 0 0 1-1.6.2h-.2c-9-8.4-23.7-8.1-32.3.8A2.3 2.3 0 0 1 38 41c10-10.3 27-10.6 37.3-.6a2.3 2.3 0 0 1-.5 2.1 2.3 2.3 0 0 1-.3 10.6zM50 18.5a31.5 31.5 0 0 1 31.5 31.5c0 8.7-3.5 16.6-9.2 22.3v-8A23.6 23.6 0 0 0 73.6 50 23.6 23.6 0 0 0 50 26.4 23.6 23.6 0 0 0 26.4 50c0 9.8 6 18.2 14.5 21.6v8.4A31.4 31.4 0 0 1 18.5 50 31.5 31.5 0 0 1 50 18.5z"/>
+        </svg>
+      );
+    }
+    return (
+      <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-neon-blue to-neon-purple p-[1.5px] select-none flex-shrink-0">
+        <div className="w-full h-full rounded-[10px] bg-[#0c0b24] flex items-center justify-center font-black text-xs text-neon-blue tracking-tighter">
+          {symbol?.slice(0, 3)}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. STOCK HEADER STATS ROW */}
       <div className="glass-panel p-6 rounded-3xl bg-gradient-to-r from-white/[0.01] via-white/[0.02] to-transparent border border-white/[0.05] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div className="space-y-2.5">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
+            {renderStockLogo(activeSymbol)}
             <h2 className="text-2xl font-black display-font text-white flex items-center gap-2">
               {metadata.name} <span className="text-zinc-500 font-normal">({activeSymbol})</span>
             </h2>
@@ -2484,7 +2516,7 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
             <div className="text-3xl font-black text-emerald-400 mono-font">
               {metadata.sentiment.positive}%
             </div>
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider block">Positive</span>
+            <span className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider block">Positive</span>
           </div>
 
           <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden flex border border-white/[0.05]">
@@ -2494,14 +2526,14 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           </div>
 
           <div className="flex justify-between items-center text-[10px] text-text-muted font-bold pt-1.5 font-mono">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pos {metadata.sentiment.positive}%</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Neu {metadata.sentiment.neutral}%</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Neg {metadata.sentiment.negative}%</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Positive {metadata.sentiment.positive}%</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-zinc-500"></span> Neutral {metadata.sentiment.neutral}%</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500"></span> Negative {metadata.sentiment.negative}%</span>
           </div>
 
           <div className="pt-2 border-t border-white/[0.03]">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              View News <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              View News <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2510,32 +2542,35 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
         <div className="glass-panel p-6 rounded-3xl space-y-4 border border-white/[0.05] bg-gradient-to-b from-white/[0.01] to-transparent hover:border-white/[0.08] transition-all">
           <div className="flex justify-between items-center text-xs font-black tracking-wider text-text-muted uppercase">
             <span className="flex items-center gap-2 text-white">
-              <MessageSquare className="w-4 h-4 text-orange-400" /> Reddit Discussion
+              <svg viewBox="0 0 20 20" className="w-4 h-4 fill-[#ff4500] flex-shrink-0 select-none">
+                <path d="M17.16 9.38c-.46 0-.87.23-1.12.59-1.25-.87-2.95-1.42-4.83-1.48l1-3.13 2.74.59c.02.66.56 1.2 1.23 1.2.68 0 1.23-.55 1.23-1.23S15.6 4.7 14.9 4.7c-.55 0-1 .36-1.17.86l-2.94-.63c-.15-.03-.3.06-.35.21L9.36 8.5C7.45 8.55 5.72 9.11 4.46 10c-.26-.37-.68-.61-1.16-.61-.79 0-1.43.64-1.43 1.43 0 .54.3 1.01.74 1.25-.04.22-.06.45-.06.69 0 2.8 3.4 5.07 7.6 5.07s7.6-2.27 7.6-5.07c0-.24-.02-.47-.06-.69.44-.24.74-.71.74-1.25 0-.79-.64-1.43-1.43-1.43zM6.85 11.46c0-.59.48-1.07 1.07-1.07.59 0 1.07.48 1.07 1.07s-.48 1.07-1.07 1.07c-.59 0-1.07-.48-1.07-1.07zm6.75 3.32c-1.09 1.09-3.18 1.09-4.28 0-.15-.15-.15-.38 0-.53.15-.15.38-.15.53 0 .8.8 2.42.8 3.22 0 .15-.15.38-.15.53 0 .15.15.15.38 0 .53zm-.9-2.25c-.59 0-1.07-.48-1.07-1.07s.48-1.07 1.07-1.07c.59 0 1.07.48 1.07 1.07s-.48 1.07-1.07 1.07z"/>
+              </svg>
+              <span>Reddit Discussion</span>
             </span>
           </div>
 
           <div className="space-y-1.5 py-1">
-            <div className="text-3xl font-black text-orange-500 mono-font">
+            <div className="text-3xl font-black text-emerald-400 mono-font">
               {metadata.reddit.bullish}%
             </div>
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider block">Bullish</span>
+            <span className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider block">Bullish</span>
           </div>
 
           <div className="w-full h-2 bg-white/[0.03] rounded-full overflow-hidden flex border border-white/[0.05]">
-            <div className="h-full bg-orange-500" style={{ width: `${metadata.reddit.bullish}%` }}></div>
-            <div className="h-full bg-white/[0.2]" style={{ width: `15%` }}></div>
-            <div className="h-full bg-rose-500" style={{ width: `${metadata.reddit.bearish - 15 > 0 ? metadata.reddit.bearish - 15 : 15}%` }}></div>
+            <div className="h-full bg-emerald-500" style={{ width: `${metadata.reddit.bullish}%` }}></div>
+            <div className="h-full bg-white/[0.2]" style={{ width: `${metadata.reddit.neutral}%` }}></div>
+            <div className="h-full bg-rose-500" style={{ width: `${metadata.reddit.bearish}%` }}></div>
           </div>
 
           <div className="flex justify-between items-center text-[10px] text-text-muted font-bold pt-1.5 font-mono">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Bull {metadata.reddit.bullish}%</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Neu 15%</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Bear {metadata.reddit.bearish - 15 > 0 ? metadata.reddit.bearish - 15 : 15}%</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Bullish {metadata.reddit.bullish}%</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-zinc-500"></span> Neutral {metadata.reddit.neutral}%</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500"></span> Bearish {metadata.reddit.bearish}%</span>
           </div>
 
           <div className="pt-2 border-t border-white/[0.03]">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              View Discussions <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              View Discussions <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2592,8 +2627,8 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           </div>
 
           <div className="pt-2 border-t border-white/[0.03]">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              View Details <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              View Details <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2609,8 +2644,8 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           <MoodGauge score={metadata.mmi} />
 
           <div className="pt-2 border-t border-white/[0.03] mt-1">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              View More <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              View More <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2653,9 +2688,9 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           </div>
 
           <div className="flex justify-between items-center text-[10px] text-text-muted font-bold pt-2 border-t border-white/[0.03] font-mono">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-indigo-500 block"></span> Price</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-emerald-500 block"></span> Sentiment</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-amber-500 block"></span> Mood Score</span>
+            <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-glow-blue/15 block"></span> Price</span>
+            <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-glow-green/15 block"></span> Sentiment</span>
+            <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-glow-yellow/15 block"></span> Mood Score</span>
           </div>
         </div>
 
@@ -2668,14 +2703,14 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
 
             <div className="space-y-3">
               {metadata.opinions.slice(0, 5).map((op, i) => (
-                <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-white/[0.02]">
+                <div key={i} className="flex justify-between items-center text-xs py-1.5 border-b border-white/[0.02]">
                   <span className="font-bold text-white leading-tight">{op.broker}</span>
-                  <span className={`py-0.5 px-2 rounded-md text-[9px] font-black uppercase border ${
+                  <span className={`font-black text-[11px] tracking-wide ${
                     op.rating.includes("Buy") || op.rating.includes("Outperform") || op.rating.includes("Overweight") || op.rating.includes("Add")
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      ? "text-emerald-400"
                       : op.rating.includes("Sell") || op.rating.includes("Reduce") || op.rating.includes("Underweight")
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                      : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                      ? "text-rose-400"
+                      : "text-amber-500"
                   }`}>
                     {op.rating}
                   </span>
@@ -2685,8 +2720,8 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           </div>
 
           <div className="pt-2 border-t border-white/[0.03]">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              View All <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              View All <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2712,10 +2747,10 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
               <div>
                 <div className="flex justify-between text-[10px] text-text-muted font-black uppercase mb-1">
                   <span>Neutral</span>
-                  <span className="text-zinc-400 font-mono font-bold">{metadata.sentiment.neutral}%</span>
+                  <span className="text-amber-400 font-mono font-bold">{metadata.sentiment.neutral}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.04]">
-                  <div className="h-full bg-zinc-500" style={{ width: `${metadata.sentiment.neutral}%` }}></div>
+                  <div className="h-full bg-amber-500 shadow-glow-yellow/10" style={{ width: `${metadata.sentiment.neutral}%` }}></div>
                 </div>
               </div>
 
@@ -2732,8 +2767,8 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           </div>
 
           <div className="pt-2 border-t border-white/[0.03]">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              View More <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              View More <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2774,8 +2809,8 @@ function MarketPulseTab({ activeSymbol, setActiveSymbol }) {
           </div>
 
           <div className="pt-2 border-t border-white/[0.03]">
-            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer">
-              Read Full Reasoning <ArrowUpRight className="w-3 h-3" />
+            <button className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer">
+              Read Full Reasoning <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -3226,27 +3261,28 @@ const getMockStockDetails = (symbol) => {
   const defaults = {
     TSLA: {
       name: "Tesla, Inc.",
-      price: 218.45,
-      change: 8.12,
-      changePct: 3.86,
-      marketCap: "$684.2 B",
-      peRatio: "42.8",
-      high52W: 271.00,
-      low52W: 138.80,
-      volume: "84.2 M",
+      price: 170.23,
+      change: -1.66,
+      changePct: -0.62,
+      marketCap: "$543.61B",
+      peRatio: "58.23",
+      high52W: 299.29,
+      low52W: 152.37,
+      volume: "84.21M",
       currency: "$",
       sentiment: { positive: 72, neutral: 18, negative: 10 },
-      reddit: { bullish: 68, bearish: 32 },
-      emotions: { optimism: 45, greed: 20, fear: 15, hype: 15, panic: 5 },
+      reddit: { bullish: 65, neutral: 10, bearish: 25 },
+      emotions: { optimism: 40, greed: 25, fear: 20, hype: 10, panic: 5 },
       mmi: 68,
       recommendation: "BUY",
       confidence: 82,
-      explanation: "Aggressive retail buying combined with strong volume absorption at support levels suggests high near-term growth potential. Watch for resistance breakout.",
+      explanation: "Tesla shows overall positive sentiment across news and social platforms. Strong earnings expectations and growing optimism in the EV sector are driving investor confidence.",
       opinions: [
-        { broker: "Morgan Stanley", rating: "Overweight", target: "$250.00" },
-        { broker: "Wedbush", rating: "Outperform", target: "$275.00" },
-        { broker: "Goldman Sachs", rating: "Neutral", target: "$220.00" },
-        { broker: "JP Morgan", rating: "Underweight", target: "$180.00" }
+        { broker: "Morgan Stanley", rating: "Overweight" },
+        { broker: "Wedbush", rating: "Outperform" },
+        { broker: "Goldman Sachs", rating: "Neutral" },
+        { broker: "JP Morgan", rating: "Overweight" },
+        { broker: "Raymond James", rating: "Strong Buy" }
       ],
       buzz: { social: 85, media: 78, volume: 92 }
     },

@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: marketpulse-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - marketpulse-network
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: marketpulse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - marketpulse-network
+
+  ai-service:
+    build: ./ai-service
+    container_name: marketpulse-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - GEMINI_API_KEY=AIzaSyADl9OGmsb3Cg1eBXVTRjsxodhj8ki9QwA
+      - HF_API_KEY=AIzaSyACqCt1sBhuKV5lKhtYQ8USY6ZuzI4EwgY
+    depends_on:
+      - redis
+    networks:
+      - marketpulse-network
+
+  server:
+    build: ./server
+    container_name: marketpulse-server
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/marketpulse
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=marketpulse_jwt_secret_key_2026_super_secure
+      - JWT_REFRESH_SECRET=marketpulse_jwt_refresh_secret_key_2026_super_secure
+      - NEWS_API_KEY=AIzaSyAFdIrwnCEBTwQ1OrW7xp3tN4lged5Qujk
+      - AI_SERVICE_URL=http://ai-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - ai-service
+    networks:
+      - marketpulse-network
+
+  client:
+    build: ./client
+    container_name: marketpulse-client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    networks:
+      - marketpulse-network
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  marketpulse-network:
+    driver: bridge
